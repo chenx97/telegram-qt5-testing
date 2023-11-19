@@ -1,0 +1,87 @@
+on:
+  push:
+    branches:
+      - 'master'
+      - 'try'
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  build-telegram-qt-5:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: Install deps
+        env:
+          DEBIAN_FRONTEND: 'noninteractive'
+        run: |
+          yes '' | pacman -Syu abseil-cpp base-devel bison boost \
+            cmake extra-cmake-modules ffmpeg flex fmt git \
+            glibmm-2.68 gobject-introspection hicolor-icon-theme \
+            hunspell jemalloc kcoreaddons5 libdispatch libnotify \
+            microsoft-gsl minizip ninja openal opus pipewire \
+            protobuf pulseaudio python qt5-base qt5-svg qt5-wayland \
+            range-v3 tl-expected xorg-apps xxhash yasm
+      - name: Check out CI repository code
+        uses: actions/checkout@v4
+      - name: Check out tdesktop repository code
+        uses: actions/checkout@v4
+        with:
+          repository: 'telegramdesktop/tdesktop'
+          path: tdesktop
+          submodules: recursive
+          fetch-depth: 2
+      - name: Check out tg_owt tree
+        uses: actions/checkout@v4
+        with:
+          repository: 'desktop-app/tg_owt'
+          path: tg_owt
+          submodules: recursive
+          fetch-depth: 1
+      - name: Check out aosc-os-abbs tree
+        uses: actions/checkout@v4
+        with:
+          repository: 'AOSC-Dev/aosc-os-abbs'
+          path: TREE
+          fetch-depth: 1
+      - name: Install rnnoise
+        run: |
+          git clone https://gitlab.xiph.org/xiph/rnnoise --depth=1
+          cd rnnoise
+          ./autogen.sh
+          ./configure --prefix=/usr --enable-shared=no
+          make install
+      - name: Install tg_owt
+        run: |
+          cd tg_owt
+          mkdir build
+          cd build
+          cmake .. -GNinja -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DTG_OWT_DLOPEN_PIPEWIRE=OFF
+          ninja
+          ninja install
+      - name: Patch tdesktop
+        run: |
+          cp -r TREE/app-web/telegram-desktop/autobuild/patches ./
+          cd tdesktop
+          bash -c 'set -e; for i in ../patches/*; do patch -Np1 < $i; done'
+      - name: Build tdesktop
+        run: |
+          cd tdesktop
+          mkdir build
+          cd build
+          cmake .. -GNinja -DCMAKE_INSTALL_PREFIX='/usr' \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DDESKTOP_APP_SPECIAL_TARGET= \
+            -DTDESKTOP_LAUNCHER_BASENAME=telegramdesktop \
+            -DDESKTOP_APP_DISABLE_WEBRTC_INTEGRATION=OFF \
+            -DDESKTOP_APP_USE_PACKAGED=OFF \
+            -DDESKTOP_APP_USE_PACKAGED_FONTS=OFF \
+            -DQT_VERSION_MAJOR=5 \
+            -DTDESKTOP_API_ID=17349 \
+            -DTDESKTOP_API_HASH=344583e45741c457fe1862106095a5eb
+          ninja
+          env DESTDIR=$PWD/abdist ninja install
