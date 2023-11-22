@@ -5,7 +5,7 @@ on:
       - 'try'
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '20 20 * * *'
 
 jobs:
   build-telegram-qt-5:
@@ -16,13 +16,14 @@ jobs:
         env:
           DEBIAN_FRONTEND: 'noninteractive'
         run: |
-          yes '' | pacman -Syu abseil-cpp base-devel bison boost \
+          pacman -Syu --noconfirm abseil-cpp base-devel bison boost \
             cmake extra-cmake-modules ffmpeg flex fmt git \
             glibmm-2.68 gobject-introspection hicolor-icon-theme \
             hunspell jemalloc kcoreaddons5 libdispatch libnotify \
-            microsoft-gsl minizip ninja openal opus pipewire \
-            protobuf pulseaudio python qt5-base qt5-svg qt5-wayland \
-            range-v3 tl-expected xorg-apps xxhash yasm
+            libxcomposite libxrandr libxtst microsoft-gsl minizip \
+            ninja openal opus pipewire protobuf pulseaudio python \
+            qt5-base qt5-svg qt5-wayland range-v3 tl-expected \
+            xdg-desktop-portal xorg-apps xxhash yasm
       - name: Check out CI repository code
         uses: actions/checkout@v4
       - name: Check out tdesktop repository code
@@ -66,6 +67,7 @@ jobs:
       - name: Patch tdesktop
         run: |
           cp -r TREE/app-web/telegram-desktop/autobuild/patches ./
+          bash -c '[ -e override/*.patch ] && cp override/*.patch patches'
           cd tdesktop
           bash -c 'set -e; for i in ../patches/*; do patch -Np1 < $i; done'
       - name: Build tdesktop
@@ -85,3 +87,10 @@ jobs:
             -DTDESKTOP_API_HASH=344583e45741c457fe1862106095a5eb
           ninja
           env DESTDIR=$PWD/abdist ninja install
+          cd abdist
+          tar cJf ../../../tdesktop-dev.tar.xz *
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: tdesktop-dev-amd64-archlinux
+          path: tdesktop-dev.tar.xz
