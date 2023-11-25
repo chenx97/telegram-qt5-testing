@@ -1,0 +1,28 @@
+on:
+  push:
+    branches:
+      - 'docker'
+      - 'master'
+      - 'try'
+    paths:
+      - '.github/workflows/docker.yml'
+      - 'Dockerfile'
+  workflow_dispatch:
+  schedule:
+    - cron: '20 18 * * 3'
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_TAG: ghcr.io/${{ github.repository }}/arch_env:latest
+    steps:
+      - name: Self clone
+        uses: actions/checkout@v4
+      - name: Docker build
+        run: |
+          docker build -t $IMAGE_TAG .
+      - name: Docker push
+        if: ${{ github.ref_name == github.event.repository.default_branch }}
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
+          docker push $IMAGE_TAG

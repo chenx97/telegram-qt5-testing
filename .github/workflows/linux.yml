@@ -3,6 +3,9 @@ on:
     branches:
       - 'master'
       - 'try'
+    paths:
+      - '.github/workflows/linux.yml'
+      - 'override/**'
   workflow_dispatch:
   schedule:
     - cron: '20 20 * * *'
@@ -10,20 +13,16 @@ on:
 jobs:
   build-telegram-qt-5:
     runs-on: ubuntu-latest
-    container: archlinux:latest
+    container:
+      image: ghcr.io/${{ github.repository }}/arch_env:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      CFLAGS: '-flto'
+      LDFLAGS: '-flto -fuse-linker-plugin'
+      AR: gcc-ar
     steps:
-      - name: Install deps
-        env:
-          DEBIAN_FRONTEND: 'noninteractive'
-        run: |
-          pacman -Syu --noconfirm abseil-cpp base-devel bison boost \
-            cmake extra-cmake-modules ffmpeg flex fmt git \
-            glibmm-2.68 gobject-introspection hicolor-icon-theme \
-            hunspell jemalloc kcoreaddons5 libdispatch libnotify \
-            libxcomposite libxrandr libxtst microsoft-gsl minizip \
-            ninja openal opus pipewire protobuf pulseaudio python \
-            qt5-base qt5-svg qt5-wayland range-v3 tl-expected \
-            xdg-desktop-portal xorg-apps xxhash yasm
       - name: Check out CI repository code
         uses: actions/checkout@v4
       - name: Check out tdesktop repository code
@@ -46,13 +45,6 @@ jobs:
           repository: 'AOSC-Dev/aosc-os-abbs'
           path: TREE
           fetch-depth: 1
-      - name: Install rnnoise
-        run: |
-          git clone https://gitlab.xiph.org/xiph/rnnoise --depth=1
-          cd rnnoise
-          ./autogen.sh
-          ./configure --prefix=/usr --enable-shared=no
-          make install
       - name: Install tg_owt
         run: |
           cd tg_owt
@@ -67,9 +59,13 @@ jobs:
       - name: Patch tdesktop
         run: |
           cp -r TREE/app-web/telegram-desktop/autobuild/patches ./
-          bash -c '[ -e override/*.patch ] && cp override/*.patch patches'
+          if [ -e override/*.patch ]; then
+            cp override/*.patch patches
+          else
+            echo '[info] no additional patches found'
+          fi
           cd tdesktop
-          bash -c 'set -e; for i in ../patches/*; do patch -Np1 < $i; done'
+          for i in ../patches/*; do patch -Np1 < $i; done
       - name: Build tdesktop
         run: |
           cd tdesktop
@@ -88,6 +84,7 @@ jobs:
           ninja
           env DESTDIR=$PWD/abdist ninja install
           cd abdist
+          strip usr/bin/telegram-desktop
           tar cJf ../../../tdesktop-dev.tar.xz *
       - name: Upload artifact
         uses: actions/upload-artifact@v3

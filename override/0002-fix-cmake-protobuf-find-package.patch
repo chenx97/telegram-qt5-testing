@@ -1,0 +1,28 @@
+Submodule Telegram/ThirdParty/cld3 contains modified content
+diff --git a/Telegram/ThirdParty/cld3/CMakeLists.txt b/Telegram/ThirdParty/cld3/CMakeLists.txt
+index 2fa3908..3a3ab5c 100644
+--- a/Telegram/ThirdParty/cld3/CMakeLists.txt
++++ b/Telegram/ThirdParty/cld3/CMakeLists.txt
+@@ -5,7 +5,7 @@ project(cld3)
+ # Old versions of cmake dont search/find protobuf lite
+ cmake_minimum_required(VERSION 3.9)
+ 
+-find_package(Protobuf REQUIRED)
++find_package(Protobuf REQUIRED CONFIG)
+ message(STATUS "Protobuf_FOUND= ${Protobuf_FOUND}")
+ message(STATUS "Protobuf_VERSION= ${Protobuf_VERSION}")
+ message(WARNING "Protobuf 2.5 and CLD3 seems happy together. This script does NOT check if your verison of protobuf is compatible.")
+Submodule cmake contains modified content
+diff --git a/cmake/external/cld3/CMakeLists.txt b/cmake/external/cld3/CMakeLists.txt
+index 1da1aef..a0c1e4a 100644
+--- a/cmake/external/cld3/CMakeLists.txt
++++ b/cmake/external/cld3/CMakeLists.txt
+@@ -17,7 +17,7 @@ set(gen_loc ${cld3_loc}/build/gen)
+ set(gen_dst ${gen_loc}/cld_3/protos)
+ 
+ if (DESKTOP_APP_USE_PACKAGED)
+-    find_package(Protobuf)
++    find_package(Protobuf REQUIRED CONFIG)
+     if (NOT Protobuf_FOUND)
+         find_package(protobuf REQUIRED CONFIG)
+     endif()
