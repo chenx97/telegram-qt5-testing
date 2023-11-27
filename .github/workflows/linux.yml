@@ -55,7 +55,7 @@ jobs:
       - name: Patch tdesktop
         run: |
           cp -r TREE/app-web/telegram-desktop/autobuild/patches ./
-          if [ -e override/*.patch ]; then
+          if [ "$(ls -A override/*.patch 2> /dev/null)" ]; then
             cp override/*.patch patches
           else
             echo '[info] no additional patches found'
