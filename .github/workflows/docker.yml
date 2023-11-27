@@ -3,7 +3,6 @@ on:
     branches:
       - 'docker'
       - 'master'
-      - 'try'
     paths:
       - '.github/workflows/docker.yml'
       - 'Dockerfile'

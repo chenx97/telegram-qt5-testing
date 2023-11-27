@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 FROM amd64/archlinux:latest AS builder
 ENV LANG C.UTF-8
 
@@ -8,10 +9,10 @@ RUN \
     curl extra-cmake-modules flex fmt git glibmm-2.68 \
     gobject-introspection hicolor-icon-theme hunspell \
     jemalloc kcoreaddons5 libdispatch libnotify \
-    libxcomposite libxrandr libxtst microsoft-gsl minizip \
-    ninja openal openh264 opus pipewire pulseaudio python \
+    libxcomposite libxrandr libxtst microsoft-gsl \
+    minizip ninja openal opus pipewire pulseaudio python \
     qt5-base qt5-svg qt5-wayland range-v3 tl-expected \
-    wget xdg-desktop-portal xorg-apps xxhash yasm
+    wget xdg-desktop-portal xxhash yasm
 
 FROM builder AS staticdeps
 ENV DESTDIR /abdist
@@ -20,7 +21,7 @@ ENV LDFLAGS '-flto -fuse-linker-plugin'
 ENV AR gcc-ar
 ENV LANG C.UTF-8
 
-RUN pacman -Syu --noconfirm python-setuptools
+RUN pacman -Syu --noconfirm meson nasm python-setuptools
 
 RUN wget https://github.com/abseil/abseil-cpp/archive/refs/tags/20230802.1.tar.gz
 
@@ -41,6 +42,7 @@ RUN tar pxf libvpx-1.13.1.tar.gz && \
     --enable-vp9-temporal-denoising \
     --enable-postproc \
     --enable-experimental \
+    --disable-avx512 \
     --disable-shared \
     --disable-install-srcs \
     --disable-unit-tests \
@@ -50,6 +52,17 @@ RUN tar pxf libvpx-1.13.1.tar.gz && \
   make install
 
 RUN cp -a /abdist/usr /
+
+RUN wget https://github.com/cisco/openh264/archive/refs/tags/v2.4.0.tar.gz
+
+RUN tar pxf v2.4.0.tar.gz && \
+  cd openh264-2.4.0 && \
+  mkdir abbuild && \
+  cd abbuild && \
+  meson setup .. --default-library static \
+    --prefix /usr \
+    --optimization 3 && \
+  ninja install
 
 RUN git clone https://gitlab.xiph.org/xiph/rnnoise --depth=1 && \
   cd rnnoise && \
