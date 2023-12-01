@@ -1,0 +1,13 @@
+diff --git a/Telegram/SourceFiles/statistics/statistics_format_values.cpp b/Telegram/SourceFiles/statistics/statistics_format_values.cpp
+index da20e1aac..730b33f2a 100644
+--- a/Telegram/SourceFiles/statistics/statistics_format_values.cpp
++++ b/Telegram/SourceFiles/statistics/statistics_format_values.cpp
+@@ -10,7 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
+ #include "base/unixtime.h"
+ #include "lang/lang_keys.h"
+ 
+-#include <QtCore/QLocale>
++#include <QLocale>
+ 
+ namespace Statistic {
+ 
